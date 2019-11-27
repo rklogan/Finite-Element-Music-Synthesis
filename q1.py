@@ -70,7 +70,7 @@ def propagate(grid):
 
 if __name__ == "__main__":
     # initialize the grid
-    grid = np.zeros((grid_size, grid_size, 3), dtype=np.float64)
+    grid = np.zeros((grid_size, grid_size, 3), dtype=np.float)
     grid[grid_size//2,grid_size//2,1] = 1
 
     #get CLAs
@@ -82,9 +82,7 @@ if __name__ == "__main__":
         grid = iterate(grid)
         grid = apply_boundary_conditions(grid)
         grid = propagate(grid)
-        print_grid(grid, True)
-        print()
-        #print(grid[grid_size//2][grid_size//2][0])
+        print(grid[grid_size//2][grid_size//2][0])
 
     
     
