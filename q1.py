@@ -1,59 +1,91 @@
 import sys
-import numpy
+import numpy as np
 
-#parameters from spec
+#define constants
 grid_size = 4
-center = int(grid_size / 2)
-rho = 0.2
-eta = 0.2
-G = 0.2
+eta = 0.0002
+rho = 0.5
+G = 0.75
 
-#other useful values
-num_fes = grid_size * grid_size
-scaler = 1 / (1 + eta)              #optimization to reduce the number of divisions
-
-def process_step(drum_skin):
-    output = numpy.zeros_like(drum_skin)
-    num_rows = len(drum_skin)
-    num_cols = len(drum_skin[0])
-
-    for i in range(num_rows):
-        for j in range(num_cols):
-            #simulation
-            #check if we're on an outer edge
-            if i == 0 or j == 0 or i == num_rows-1 or j == num_cols-1:
-                output[i][j] = (0.0, 0.0, 0.0)
+#debug function. Not used in submission
+def print_grid(grid, current_only=False):
+    for row in grid:
+        string = ''
+        for col in row:
+            if current_only:
+                string += str(col[0]) + '\t'
             else:
-                #TODO Optimize these calculations
-                output[i][j][0] = drum_skin[i-1][j][1]
-                output[i][j][0] += drum_skin[i+1][j][1]
-                output[i][j][0] += drum_skin[i][j-1][1]
-                output[i][j][0] += drum_skin[i][j+1][1]
-                output[i][j][0] -= 4 * drum_skin[i][j][1]
-                output[i][j][0] *= rho
-                output[i][j][0] += 2 * drum_skin[i][j][1]
-                output[i][j][0] -= (1-eta) * drum_skin[i][j][2]
-                output[i][j][0] *= scaler
+                string += str(col) + ', '
+        print(string)
 
-                #propogate values
-                output[i][j][1] = drum_skin[i][j][0]
-                output[i][j][2] = drum_skin[i][j][1]
+def iterate(grid):
+    row = 1
+    while row < grid_size - 1:
+        col = 1
+        while col < grid_size - 1:
+            #print(str(row) + ' ' + str(col))
+            grid[row][col][0] = grid[row-1][col][1]
+            grid[row][col][0] += grid[row+1][col][1]
+            grid[row][col][0] += grid[row][col-1][1]
+            grid[row][col][0] += grid[row][col+1][1]
+            grid[row][col][0] -= 4 * grid[row][col][1]
+            grid[row][col][0] *= rho
+            grid[row][col][0] += 2 * grid[row][col][1]
+            grid[row][col][0] -= (1 - eta) * grid[row][col][2]
+            grid[row][col][0] /= (1 + eta)
 
+            col += 1
+        row += 1
+    return grid
 
+def apply_boundary_conditions(grid):
+    #apply the first 4 boundary conditions
+    i = 1
+    while i < grid_size - 1:
+        grid[0][i][0] = G * grid[1][i][0]
+        grid[grid_size-1][i][0] = G * grid[grid_size-2][i][0]
+        grid[i][0][0] = G * grid[i][1][0]
+        grid[i][grid_size -1][0] = G * grid[i][grid_size-2][0]
+        i += 1
 
-    return output
+    #corner cases
+    grid[0][0][0] = G * grid[1][0][0]
+    grid[grid_size-1][0][0] = G * grid[grid_size-2][0][0]
+    grid[0][grid_size-1][0] = G * grid[0][grid_size-2][0]
+    grid[grid_size-1][grid_size-1][0] = G * grid[grid_size-1][grid_size-2][0]
 
+    return grid
 
-#get CLAs
-T = 5     #default to 3 seconds
-if(len(sys.argv) >= 2):
-    T = int(sys.argv[1])
+def propagate(grid):
+    row = 0
+    while row < grid_size:
+        col = 0
+        while col < grid_size:
+            grid[row][col][2] = grid[row][col][1]
+            grid[row][col][1] = grid[row][col][0]
 
+            col += 1
+        row += 1
+    return grid
 
-#initialize the array
-drum_skin = numpy.zeros((grid_size, grid_size), dtype=(numpy.float32,3))
-drum_skin[center][center] = (1.0, 1.0, 1.0)
+if __name__ == "__main__":
+    # initialize the grid
+    grid = np.zeros((grid_size, grid_size, 3), dtype=np.float64)
+    grid[grid_size//2,grid_size//2,1] = 1
 
-for i in range(T):
-    drum_skin = process_step(drum_skin)
-    print(drum_skin)
+    #get CLAs
+    num_iterations = 3
+    if len(sys.argv) >= 2:
+        num_iterations = int(sys.argv[1])
+
+    for i in range(num_iterations):
+        grid = iterate(grid)
+        grid = apply_boundary_conditions(grid)
+        grid = propagate(grid)
+        print_grid(grid, True)
+        print()
+        #print(grid[grid_size//2][grid_size//2][0])
+
+    
+    
+
