@@ -37,7 +37,6 @@ def iterate(grid, width, corner_barrier, num_iterations):
             grid[row][col][0] -= (1 - eta) * grid[row][col][2]
             grid[row][col][0] /= (1 + eta)
 
-        #print('interior done')
         #boundary nodes need to wait here for the interior to be written
         cuda.syncthreads()
 
@@ -83,6 +82,8 @@ def iterate(grid, width, corner_barrier, num_iterations):
                 pass
 
         cuda.syncthreads()
+
+        q1.print_grid(grid)
 
         iteration += 1
 
