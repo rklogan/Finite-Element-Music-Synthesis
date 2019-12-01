@@ -1,5 +1,8 @@
 import sys
 import numpy as np
+import time
+
+OUTPUT_TIMING_DATA = False
 
 #define constants
 grid_size = 4
@@ -18,12 +21,12 @@ def print_grid(grid, current_only=False):
                 string += str(col) + ', '
         print(string)
 
+#processes the internal part of the grid
 def iterate(grid):
     row = 1
     while row < grid_size - 1:
         col = 1
         while col < grid_size - 1:
-            #print(str(row) + ' ' + str(col))
             grid[row][col][0] = grid[row-1][col][1]
             grid[row][col][0] += grid[row+1][col][1]
             grid[row][col][0] += grid[row][col-1][1]
@@ -38,6 +41,7 @@ def iterate(grid):
         row += 1
     return grid
 
+#processes the edges and corners
 def apply_boundary_conditions(grid):
     #apply the first 4 boundary conditions
     i = 1
@@ -56,6 +60,7 @@ def apply_boundary_conditions(grid):
 
     return grid
 
+#copies u1 to u2 and u0 to u1 for the grid
 def propagate(grid):
     row = 0
     while row < grid_size:
@@ -74,16 +79,29 @@ if __name__ == "__main__":
     grid[grid_size//2,grid_size//2,1] = 1
 
     #get CLAs
-    num_iterations = 3
+    num_iterations = 20
     if len(sys.argv) >= 2:
         num_iterations = int(sys.argv[1])
 
+    start = time.time()
+
+    #process the grid the required number of times
     for i in range(num_iterations):
         grid = iterate(grid)
         grid = apply_boundary_conditions(grid)
         grid = propagate(grid)
-        print(grid[grid_size//2][grid_size//2][0])
 
-    
-    
+        #format to match sample
+        u = grid[grid_size//2][grid_size//2][0]
+        u_string = '{:.6f}'.format(round(u, 6))
+        if u >= 0:
+            u_string = ' ' + u_string
+        if i < 9:
+            u_string = ' ' + u_string
+        print(str(i+1) + ': ' +  u_string)
 
+    end = time.time()
+
+    if OUTPUT_TIMING_DATA:
+        with open('single-threaded.csv', 'a+') as f:
+            f.write(str(end-start) + ',')

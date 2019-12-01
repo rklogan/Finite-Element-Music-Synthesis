@@ -1,8 +1,11 @@
-""" Question 2: Cell by cell Parallelization """
+""" Question 3: Cell by cell Parallelization """
 import numpy as np
 import numba
 from numba import cuda
 import sys
+import time
+
+OUTPUT_TIMING_DATA = False
 
 #define constants
 grid_size = 512
@@ -91,12 +94,14 @@ grid = np.zeros((grid_size, grid_size, 3), dtype=np.float)
 grid[grid_size//2][grid_size//2][1] = np.float(1.0)
 grid_d = cuda.to_device(grid)
 
-tmp = np.array([0.0], dtype=np.float)
-output = cuda.device_array_like(tmp)
-
-num_iterations = 12
+num_iterations = 20
 if len(sys.argv) >= 2:
     num_iterations = int(sys.argv[1])
+
+start = time.time()
+
+tmp = np.array([0.0], dtype=np.float)
+output = cuda.device_array_like(tmp)    
 
 for i in range(num_iterations):
   process_interior[num_blocks,threads_per_block](grid_d, output, grid_size, sub_block_width)
@@ -105,7 +110,21 @@ for i in range(num_iterations):
   propogate[num_blocks,threads_per_block](grid_d, grid_size, sub_block_width)
   #print(grid_d.copy_to_host())
   result = output.copy_to_host()
-  
-  print(result[0].round(6))
+
+  #format to match sample
+  if not OUTPUT_TIMING_DATA:
+    u = result[0]
+    u_string = '{:.6f}'.format(round(u, 6))
+    if u >= 0:
+        u_string = ' ' + u_string
+    if i < 9:
+        u_string = ' ' + u_string
+    print(str(i+1) + ': ' +  u_string)
+
+end = time.time()
+
+if OUTPUT_TIMING_DATA:
+  with open('5.csv', 'a+') as f:
+    f.write(str(end - start) + ',')
 
   
